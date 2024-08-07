@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -7,43 +8,62 @@ import requests
 from config.config import url, nb_days, save
 
 
-def extract_medal_from_html(html: str) -> dict:
+def extract_medal_from_html(html: str, date: str) -> dict:
     """
     Get the number of medals per country and per sport
     """
     soup = BeautifulSoup(html, 'lxml')
-    countries_div = "virtuoso-item-list"  # div containing countries
-    tab = soup.find(attrs={"data-test-id": countries_div})
-    soup_tab = BeautifulSoup(str(tab), 'lxml')
+    json_div_id = "__NEXT_DATA__"  # div containing countries
+    json_div = soup.find(id=json_div_id)
 
-    idx = 0
-    medals_per_country = {}
-    country_div = soup_tab.find(attrs={"data-index": idx})
+    # Get the json containing medals stats
+    json_str = str(json_div).split(">")[1].split("<")[0]
+    json_data = json.loads( json_str )
+    medals_table = json_data['props']['pageProps']['initialMedals']['medalStandings']['medalsTable']
 
-    while country_div:
+    # Init
+    data = {}
+    for table in medals_table:
+        current_table = {}
+        current_table['date'] = date # reformatter la date !!!! todo
+        # Number of medals (total, men, women)
+        nb_medals = table['medalsNumber']
 
-        medals_count = {}
-        soup = BeautifulSoup(str(country_div), 'lxml')
-        country_name = str(soup.find(class_="elhe7kv5 emotion-srm-uu3d5n"))
+            # total
+        try :
+            current_table['total_gold'] = nb_medals[2]['gold']
+            current_table['total_silver'] = nb_medals[2]['silver']
+            current_table['total_bronze'] = nb_medals[2]['bronze']
+        except IndexError as e:
+            (current_table['total_gold'], current_table['total_silver'],
+             current_table['total_bronze']) = 0, 0, 0
 
+            # men
         try:
-            country_name = country_name.split('>')[1].split('<')[0]
-        except IndexError:
-            pass
+            current_table['men_gold'] = nb_medals[0]['gold']
+            current_table['men_silver'] = nb_medals[0]['silver']
+            current_table['men_bronze'] = nb_medals[0]['bronze']
+        except IndexError as e:
+            (current_table['men_gold'], current_table['men_silver'],
+             current_table['men_bronze']) = 0, 0, 0
 
-        medals = soup.find_all(class_="e1oix8v91 emotion-srm-81g9w1")
-        medals = list(map(lambda x: str(x).split('>')[1].split('<')[0], medals))
+            # women
+        try:
+            current_table['women_gold'] = nb_medals[1]['gold']
+            current_table['women_silver'] = nb_medals[1]['silver']
+            current_table['women_bronze'] = nb_medals[1]['bronze']
+        except IndexError as e:
+            (current_table['women_gold'], current_table['women_silver'],
+             current_table['women_bronze']) = 0, 0, 0
 
-        if medals:
-            medals_count['gold'] = medals[0]
-            medals_count['silver'] = medals[1]
-            medals_count['bronze'] = medals[2]
+        # Medals per sport
+        disciplines = table['disciplines']
+        for d in disciplines:
+            current_table[ d['name'] ] = ( d['gold'], d['silver'], d['bronze'] )
 
-            medals_per_country[country_name] = medals_count
-        idx += 1
-        country_div = soup_tab.find(attrs={"data-index": idx})
+        data[table['description']] = current_table
 
-    return medals_per_country
+    return data
 
 
 def request_medal_page(date: str, url: str) -> bytes:
@@ -63,14 +83,14 @@ def run(url: str, nb_day: int = 10) -> dict:
     Main
     """
 
-    dataset = dict()
+    dataset = []
     current_date = datetime.strptime("2024-07-28", "%Y-%m-%d")
 
-    for i in range(10):
+    for i in range(2):
         formatted_date = current_date.strftime('%Y%m%d')
         html = request_medal_page(formatted_date, url)
-        data = extract_medal_from_html(html)
-        dataset[formatted_date] = data
+        data = extract_medal_from_html(html, formatted_date)
+        dataset.append( data )
 
         current_date += timedelta(days=1)
         print(f"..Day{i}, done!")
@@ -80,7 +100,7 @@ def run(url: str, nb_day: int = 10) -> dict:
 
 if __name__ == "__main__":
     d = run(url, nb_days)
-    df = pd.DataFrame(d)
+    df = pd.DataFrame( d )
     print("..Done\n", df.head())
 
     if save:
