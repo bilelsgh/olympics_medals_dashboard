@@ -13,3 +13,4 @@ if CONF_PATH.is_file():
     nb_days = config['nb_days']
     url = config['url']
     save = config['save']
+    dataset_path = config['dataset']

@@ -8,7 +8,7 @@ import requests
 from config.config import url, nb_days, save
 
 
-def extract_medal_from_html(html: str, date: str) -> dict:
+def extract_medal_from_html(html: str, date: str) -> list:
     """
     Get the number of medals per country and per sport
     """
@@ -22,46 +22,47 @@ def extract_medal_from_html(html: str, date: str) -> dict:
     medals_table = json_data['props']['pageProps']['initialMedals']['medalStandings']['medalsTable']
 
     # Init
-    data = {}
+    data = []
     for table in medals_table:
         current_table = {}
-        current_table['date'] = date # reformatter la date !!!! todo
+        current_table['date'] = f'{date[:4]}-{date[4:6]}-{date[6:]}'
+
+        # Country name
+        current_table['country'] = table['description']
+
         # Number of medals (total, men, women)
-        nb_medals = table['medalsNumber']
+        init_col = ['men_gold', 'men_silver', 'men_bronze', 'total_gold', 'total_silver',
+                    'total_bronze', 'women_gold', 'women_silver', 'women_bronze', ]
 
-            # total
-        try :
-            current_table['total_gold'] = nb_medals[2]['gold']
-            current_table['total_silver'] = nb_medals[2]['silver']
-            current_table['total_bronze'] = nb_medals[2]['bronze']
-        except IndexError as e:
-            (current_table['total_gold'], current_table['total_silver'],
-             current_table['total_bronze']) = 0, 0, 0
+        nb_medals = [ elt for elt in table['medalsNumber'] if elt['type'] in ['Men','Women','Total'] ] # Handle when it's 'open'
+        nb_medals.sort( key=lambda x: x['type'])
+        total_medals, total_men, total_women = 0, 0, 0
 
-            # men
-        try:
-            current_table['men_gold'] = nb_medals[0]['gold']
-            current_table['men_silver'] = nb_medals[0]['silver']
-            current_table['men_bronze'] = nb_medals[0]['bronze']
-        except IndexError as e:
-            (current_table['men_gold'], current_table['men_silver'],
-             current_table['men_bronze']) = 0, 0, 0
+        for i, medal_col in enumerate(init_col):
+            if table['description'] == 'France':
+                a = 1
+            medal_type = medal_col.split('_')[1]
+            idx = i // 3
+            try:
+                current_table[medal_col] = nb_medals[idx][medal_type]
 
-            # women
-        try:
-            current_table['women_gold'] = nb_medals[1]['gold']
-            current_table['women_silver'] = nb_medals[1]['silver']
-            current_table['women_bronze'] = nb_medals[1]['bronze']
-        except IndexError as e:
-            (current_table['women_gold'], current_table['women_silver'],
-             current_table['women_bronze']) = 0, 0, 0
+                # Update total counts
+                total_men = nb_medals[idx]['total'] if idx == 0 else total_men
+                total_medals = nb_medals[idx]['total'] if idx == 1 else total_medals
+                total_women = nb_medals[idx]['total'] if idx == 2 else total_women
+            except IndexError as e:
+                current_table[medal_col] = 0
+
+        current_table['total_medals'], current_table['men_total'], current_table['women_total'] = (total_medals,
+                                                                                                   total_men, total_women)
 
         # Medals per sport
         disciplines = table['disciplines']
         for d in disciplines:
             current_table[ d['name'] ] = ( d['gold'], d['silver'], d['bronze'] )
 
-        data[table['description']] = current_table
+
+        data.append( current_table )
 
     return data
 
@@ -78,7 +79,7 @@ def request_medal_page(date: str, url: str) -> bytes:
         return response.content
 
 
-def run(url: str, nb_day: int = 10) -> dict:
+def extract_dataset(url: str, nb_day: int = 10) -> list:
     """
     Main
     """
@@ -86,11 +87,11 @@ def run(url: str, nb_day: int = 10) -> dict:
     dataset = []
     current_date = datetime.strptime("2024-07-28", "%Y-%m-%d")
 
-    for i in range(2):
+    for i in range(13):
         formatted_date = current_date.strftime('%Y%m%d')
         html = request_medal_page(formatted_date, url)
         data = extract_medal_from_html(html, formatted_date)
-        dataset.append( data )
+        dataset += data
 
         current_date += timedelta(days=1)
         print(f"..Day{i}, done!")
@@ -99,7 +100,7 @@ def run(url: str, nb_day: int = 10) -> dict:
 
 
 if __name__ == "__main__":
-    d = run(url, nb_days)
+    d = extract_dataset(url, nb_days)
     df = pd.DataFrame( d )
     print("..Done\n", df.head())
 
