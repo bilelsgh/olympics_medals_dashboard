@@ -14,3 +14,4 @@ if CONF_PATH.is_file():
     url = config['url']
     save = config['save']
     dataset_path = config['dataset']
+    nb_col_before_sports = 15

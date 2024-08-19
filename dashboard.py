@@ -1,7 +1,7 @@
 import streamlit as st
 import plotly.express as px
 
-from proccess import get_medals_evolution, get_dataset
+from proccess import get_medals_evolution, get_dataset, nb_sports_with_medals, sports_with_medals
 
 st.set_page_config(layout="wide")
 st.title("Olympics in data")
@@ -47,3 +47,20 @@ with st.expander('Medals evolution'):
     fig = px.line(gold_medals[gold_medals['country'].isin(countries)],
                   x="date", y=idx, color='country', markers=True)
     r1.plotly_chart(fig)
+
+
+# ====== Sports =======
+
+with st.expander("Sports"):
+
+    l2, r2 = st.columns(2)
+    l2.subheader('Most sports with medals')
+    nb_sport_medals = nb_sports_with_medals(df)
+    nb_sport_medals = nb_sport_medals if not global_filter else nb_sport_medals[ nb_sport_medals['country'].isin(global_country)]
+    fig = px.histogram(nb_sport_medals, "country", "sports_with_medals")
+    l2.plotly_chart(fig)
+
+    r2.subheader( 'Sports with medal per country')
+    selected_country = r2.selectbox('Select a country', nb_sport_medals['country'].unique().tolist())
+    sport_medals = sports_with_medals(df, selected_country)
+    r2.dataframe(sport_medals)

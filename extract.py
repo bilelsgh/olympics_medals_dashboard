@@ -53,13 +53,14 @@ def extract_medal_from_html(html: str, date: str) -> list:
             except IndexError as e:
                 current_table[medal_col] = 0
 
-        current_table['total_medals'], current_table['men_total'], current_table['women_total'] = (total_medals,
-                                                                                                   total_men, total_women)
+        current_table['total_medals'], current_table['men_total'], current_table['women_total'] = (int(total_medals),
+                                                                                                   int(total_men),
+                                                                                                   int(total_women))
 
         # Medals per sport
         disciplines = table['disciplines']
         for d in disciplines:
-            current_table[ d['name'] ] = ( d['gold'], d['silver'], d['bronze'] )
+            current_table[ d['name'] ] = ( int(d['gold']), int(d['silver']), int(d['bronze']) )
 
 
         data.append( current_table )
