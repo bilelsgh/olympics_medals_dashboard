@@ -4,7 +4,7 @@ This project aims to visualize relevant information about the Paris 2024 Olympic
 It covers the whole process from the data fetching, the dataset construction and the visualization.
 
 ### Main workflow
-![alt text](https://github.com/bilelsgh/olympics_medals_dashboard)
+![alt text](https://github.com/bilelsgh/olympics_medals_dashboard/blob/master/config/workflow.jpg)
 
 ### Run
 
