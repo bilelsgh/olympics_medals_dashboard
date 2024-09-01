@@ -2,4 +2,4 @@ nb_days: 10
 url: "https://olympics.com/en/paris-2024/medals"
 save: True
 
-dataset: "datasets/20240819_olympics_paris_medals.csv"
+dataset: "datasets/20240820_olympics_paris_medals.csv"

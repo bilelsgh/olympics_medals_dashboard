@@ -88,7 +88,7 @@ def extract_dataset(url: str, nb_day: int = 10) -> list:
     dataset = []
     current_date = datetime.strptime("2024-07-28", "%Y-%m-%d")
 
-    for i in range(13):
+    for i in range(15):
         formatted_date = current_date.strftime('%Y%m%d')
         html = request_medal_page(formatted_date, url)
         data = extract_medal_from_html(html, formatted_date)

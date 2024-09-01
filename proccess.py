@@ -49,6 +49,16 @@ def get_medals_evolution(df: pd.DataFrame, sex: str = 'all', type_: str = 'total
 
     return filtered_df, col_name
 
+def get_ranking(df: pd.DataFrame, date_ = str):
+    """
+    Get the official Paris Olympics medals ranking
+    """
+
+    res = df[ df['date'] == date_ ][['country', 'total_gold', 'total_silver', 'total_bronze','total_medals']]
+    res.sort_values(by=['total_gold','total_silver','total_bronze'])
+    res = res.reset_index()
+
+    return res
 
 def get_medals_per_sport(df: pd.DataFrame, sports: List) -> pd.DataFrame:
     """
